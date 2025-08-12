@@ -1,0 +1,37 @@
+[project]
+name = "foxglove-fdw"
+version = "0.1.0"
+description = "Multicorn2 FDW exposing Foxglove Data Platform"
+requires-python = ">=3.11"
+dependencies = [
+    "multicorn @ git+https://github.com/pgsql-io/multicorn2.git@v3.0",
+    "requests>=2.32",
+    "types-requests>=2.32.4.20250611",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.10",
+]
+
+[project.entry-points."multicorn.fdw"]
+foxglove_devices = "foxglove_fdw.devices:FoxgloveDevicesFDW"
+foxglove_events = "foxglove_fdw.events:FoxgloveEventsFDW"
+foxglove_recording_attachments = "foxglove_fdw.recording_attachments:FoxgloveRecordingAttachmentsFDW"
+foxglove_recordings = "foxglove_fdw.recordings:FoxgloveRecordingsFDW"
+foxglove_topics = "foxglove_fdw.topics:FoxgloveTopicsFDW"
+
+[tool.black]
+line-length = 100
+
+[tool.mypy]
+python_version = "3.11"
+
+# multicorn does not ship type hints or a py.typed marker. Suppress just for it.
+[[tool.mypy.overrides]]
+module = "multicorn"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "multicorn.*"
+ignore_missing_imports = true
