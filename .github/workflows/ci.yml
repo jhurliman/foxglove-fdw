@@ -82,26 +82,33 @@ jobs:
       - name: Wait for schema initialization (devices table)
         run: |
           set -e
+          found=false
           for i in $(seq 1 60); do
-            if docker exec $CONTAINER_NAME psql -U postgres -d postgres -Atc "SELECT to_regclass('public.devices') IS NOT NULL;" | grep -q '^t$'; then
+            # Check via information_schema for robust existence detection
+            if docker exec $CONTAINER_NAME psql -U postgres -d postgres -Atc \
+                "SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='devices' LIMIT 1;" \
+                | grep -q '^1$'; then
               echo "Schema initialized"
+              found=true
               break
             fi
             echo "Waiting for schema ($i) ..."
             sleep 2
           done
+          if [ "$found" != "true" ]; then
+            echo "Schema did not initialize in time" >&2
+            exit 1
+          fi
 
       - name: Run smoke query and verify 3 rows
         run: |
           set -euo pipefail
-          # Execute query and produce only data rows (no headers/footers)
-          OUTPUT=$(docker exec $CONTAINER_NAME psql -U postgres -d postgres -t -A -c "SELECT * FROM devices LIMIT 3;")
-          # Trim empty lines and count rows
-          ROWS=$(printf "%s\n" "$OUTPUT" | sed '/^\s*$/d' | wc -l | tr -d ' ')
-          echo "Query returned $ROWS rows"
-          if [ "$ROWS" -ne 3 ]; then
-            echo "Unexpected row count. Full output:" >&2
-            printf "%s\n" "$OUTPUT" >&2
+          # Ask Postgres for the exact row count of the limited result set
+          COUNT=$(docker exec $CONTAINER_NAME psql -U postgres -d postgres -t -A -c "SELECT COUNT(*) FROM (SELECT 1 FROM devices LIMIT 3) AS sub;")
+          COUNT=$(echo "$COUNT" | tr -d '[:space:]')
+          echo "Row count: $COUNT"
+          if [ "$COUNT" -ne 3 ]; then
+            echo "Expected 3 rows, got $COUNT" >&2
             exit 1
           fi
 
