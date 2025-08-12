@@ -45,7 +45,8 @@ ORDER BY total_bytes DESC;
 
 # Limitations
 
-The Foxglove API defaults to returning a maximum of 2000 rows per request. Automatic pagination is not currently supported, so queries that would return more than 2000 rows will be silently truncated.
+- The Foxglove API defaults to returning a maximum of 2000 rows per request. Automatic pagination is not currently supported, so queries that would return more than 2000 rows will be silently truncated.
+- `FOXGLOVE_API_KEY` is currently baked into the Docker image and must be provided at build time. A future improvement would be to move this to a runtime configuration so the same container could be used with different API keys and there is no secret in the image.
 
 # License
 
