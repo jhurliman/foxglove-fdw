@@ -24,7 +24,7 @@ You can query the Foxglove API using SQL commands. Here are some examples:
 - List all registered devices:
 
 ```sql
-SELECT * FROM foxglove_devices_srv;
+SELECT * FROM devices;
 ```
 
 - List all topics from a particular recording:
