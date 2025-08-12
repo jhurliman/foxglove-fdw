@@ -12,7 +12,7 @@ if [ -z "${FOXGLOVE_API_KEY:-}" ]; then
 fi
 
 docker buildx build \
-  --secret id=FOXGLOVE_API_KEY \
+  --secret id=FOXGLOVE_API_KEY,env=FOXGLOVE_API_KEY \
   -t foxglove-fdw \
   .
 

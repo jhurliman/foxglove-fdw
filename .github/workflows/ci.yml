@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint (flake8 + mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 mypy requests types-requests
+
+      - name: flake8
+        run: |
+          flake8 foxglove_fdw
+
+      - name: mypy
+        run: |
+          mypy foxglove_fdw
+
+  smoke-test:
+    name: Smoke Test (Docker build + query)
+    needs: lint
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: foxglove-fdw:ci
+      CONTAINER_NAME: foxglove-postgres
+      POSTGRES_PASSWORD: postgres
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image with FOXGLOVE_API_KEY secret
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          tags: ${{ env.IMAGE_NAME }}
+          load: true
+          secrets: |
+            FOXGLOVE_API_KEY=${{ secrets.FOXGLOVE_API_KEY }}
+
+      - name: Run Postgres container
+        run: |
+          docker rm -f $CONTAINER_NAME 2>/dev/null || true
+          docker run -d \
+            --name $CONTAINER_NAME \
+            -p 5432:5432 \
+            -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+            $IMAGE_NAME
+
+      - name: Wait for Postgres readiness
+        run: |
+          set -e
+          for i in $(seq 1 60); do
+            if docker exec $CONTAINER_NAME pg_isready -U postgres >/dev/null 2>&1; then
+              echo "Postgres is ready"
+              break
+            fi
+            echo "Waiting for Postgres ($i) ..."
+            sleep 2
+          done
+          # Final check to fail early if still not ready
+          docker exec $CONTAINER_NAME pg_isready -U postgres
+
+      - name: Wait for schema initialization (devices table)
+        run: |
+          set -e
+          found=false
+          for i in $(seq 1 60); do
+            # Check via information_schema for robust existence detection
+            if docker exec $CONTAINER_NAME psql -U postgres -d postgres -Atc \
+                "SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='devices' LIMIT 1;" \
+                | grep -q '^1$'; then
+              echo "Schema initialized"
+              found=true
+              break
+            fi
+            echo "Waiting for schema ($i) ..."
+            sleep 2
+          done
+          if [ "$found" != "true" ]; then
+            echo "Schema did not initialize in time" >&2
+            exit 1
+          fi
+
+      - name: Run smoke query and verify 3 rows
+        run: |
+          set -euo pipefail
+          # Ask Postgres for the exact row count of the limited result set
+          COUNT=$(docker exec $CONTAINER_NAME psql -U postgres -d postgres -t -A -c "SELECT COUNT(*) FROM (SELECT 1 FROM devices LIMIT 3) AS sub;")
+          COUNT=$(echo "$COUNT" | tr -d '[:space:]')
+          echo "Row count: $COUNT"
+          if [ "$COUNT" -ne 3 ]; then
+            echo "Expected 3 rows, got $COUNT" >&2
+            exit 1
+          fi
+
+      - name: Cleanup container
+        if: always()
+        run: |
+          docker rm -f $CONTAINER_NAME 2>/dev/null || true
