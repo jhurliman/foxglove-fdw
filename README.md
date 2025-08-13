@@ -43,6 +43,22 @@ GROUP BY device_name
 ORDER BY total_bytes DESC;
 ```
 
+- Total runtime of a device in a given time period:
+
+```sql
+WITH filtered AS
+  (SELECT tstzrange(start_time, end_time, '[)') AS r
+   FROM coverage
+   WHERE tolerance = 60
+     AND device_name = '<your_device_name>'
+     AND start_time > '2025-01-01 06:00-08'::timestamptz
+     AND end_time < now()),
+agg AS
+  (SELECT range_agg(r) AS mr FROM filtered)
+SELECT SUM(EXTRACT(EPOCH FROM (upper(x) - lower(x)))) / 60.0 AS coverage_minutes
+FROM agg, LATERAL unnest(mr) AS x;
+```
+
 # Limitations
 
 - The Foxglove API defaults to returning a maximum of 2000 rows per request. Automatic pagination is not currently supported, so queries that would return more than 2000 rows will be silently truncated.

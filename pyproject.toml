@@ -15,6 +15,7 @@ dev = [
 ]
 
 [project.entry-points."multicorn.fdw"]
+foxglove_coverage = "foxglove_fdw.coverage:FoxgloveCoverageFDW"
 foxglove_devices = "foxglove_fdw.devices:FoxgloveDevicesFDW"
 foxglove_events = "foxglove_fdw.events:FoxgloveEventsFDW"
 foxglove_recording_attachments = "foxglove_fdw.recording_attachments:FoxgloveRecordingAttachmentsFDW"

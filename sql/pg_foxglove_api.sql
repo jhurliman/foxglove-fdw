@@ -123,3 +123,21 @@ CREATE FOREIGN TABLE IF NOT EXISTS topics (
     end_time         timestamptz,
     project_id       text
 ) SERVER foxglove_topics_srv;
+
+CREATE SERVER foxglove_coverage_srv
+    FOREIGN DATA WRAPPER multicorn
+    OPTIONS (wrapper 'foxglove_fdw.coverage.FoxgloveCoverageFDW');
+
+CREATE USER MAPPING FOR CURRENT_USER
+    SERVER foxglove_coverage_srv
+    OPTIONS (api_key '$FOXGLOVE_API_KEY');
+
+CREATE FOREIGN TABLE IF NOT EXISTS coverage (
+    device_id      text,
+    device_name    text,
+    start_time     timestamptz,
+    end_time       timestamptz,
+    status         text,
+    import_status  text,
+    tolerance      integer
+) SERVER foxglove_coverage_srv;
