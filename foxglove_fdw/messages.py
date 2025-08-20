@@ -3,7 +3,7 @@ Read-only FDW for `POST /v1/data/stream` (MCAP outputFormat) which streams MCAP
 data and yields one row per MCAP message with a decoded payload when supported.
 
 Supported schema encodings:
-    - protobuf*  (decoded to JSON via mcap_protobuf)
+    - protobuf   (decoded to JSON via mcap_protobuf)
     - json       (UTF-8 JSON blob parsed to JSON)
 
 Unsupported encodings yield NULL for the `message` column (instead of the
@@ -23,7 +23,7 @@ Exposed columns:
     schema_id      int             (MCAP channel.schema_id)
     sequence_id    int             (MCAP message.sequence or 0 if absent)
     encoding       text            (message encoding, ex: 'protobuf', 'json')
-    message        jsonb           (decoded protobuf object OR fallback JSON with _raw_b64/_encoding)
+    message        jsonb           (decoded object OR NULL)
 
 Push-down filters:
     Equality: device_id, device_name, recording_id, recording_key, topic, limit
@@ -43,7 +43,7 @@ Source selection rules:
                 - A complete [start,end] range is ensured as described above.
 
 Decoding:
-    When schema.encoding starts with 'protobuf', each message is decoded via
+    When schema.encoding == 'protobuf', each message is decoded via
     mcap_protobuf Decoder into a Python object and JSON-serialized. On decode
     failure a sentinel object is returned: {"_error": str}.
     When schema.encoding == 'json', the bytes are parsed as UTF-8 JSON.

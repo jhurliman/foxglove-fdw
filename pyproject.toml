@@ -10,14 +10,15 @@ dependencies = [
     "multicorn @ git+https://github.com/pgsql-io/multicorn2.git@v3.0",
     "protobuf>=6.32.0",
     "requests>=2.32",
-    "types-protobuf>=6.30.2.20250809",
-    "types-requests>=2.32.4.20250611",
     "zstandard>=0.24.0",
 ]
 
 [dependency-groups]
 dev = [
+    "flake8>=7.3.0",
     "mypy>=1.10",
+    "types-protobuf>=6.30.2.20250809",
+    "types-requests>=2.32.4.20250611",
 ]
 
 [project.entry-points."multicorn.fdw"]

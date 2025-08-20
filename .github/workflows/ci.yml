@@ -21,16 +21,20 @@ jobs:
 
       - name: Install tooling
         run: |
-          python -m pip install --upgrade pip
-          pip install flake8 mypy requests types-requests
+          set -euo pipefail
+          # Install uv (fast Python package manager) and add to PATH
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          # Install all project + dev dependencies from uv.lock
+          uv sync --dev
 
       - name: flake8
         run: |
-          flake8 foxglove_fdw
+          uv run flake8 foxglove_fdw
 
       - name: mypy
         run: |
-          mypy foxglove_fdw
+          uv run mypy foxglove_fdw
 
   smoke-test:
     name: Smoke Test (Docker build + query)
