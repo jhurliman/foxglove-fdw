@@ -1,8 +1,23 @@
 [project]
 name = "foxglove-fdw"
-version = "0.1.0"
+version = "0.2.0"
+license = "MIT"
 description = "Multicorn2 FDW exposing Foxglove Data Platform"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.13"
+readme = "README.md"
+authors = [
+    { name = "John Hurliman", email = "jhurliman@jhurliman.org" },
+]
+keywords = [
+    "fdw",
+    "foreign-data-wrapper",
+    "foxglove",
+    "mcap",
+    "multicorn",
+    "postgresql",
+    "robotics",
+    "ros",
+]
 dependencies = [
     "lz4>=4.4.4",
     "mcap-protobuf-support>=0.5.3",
@@ -12,6 +27,17 @@ dependencies = [
     "requests>=2.32",
     "zstandard>=0.24.0",
 ]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Database",
+]
+
+[project.urls]
+Homepage = "https://github.com/jhurliman/foxglove-fdw"
+Repository = "https://github.com/jhurliman/foxglove-fdw"
+Issues = "https://github.com/jhurliman/foxglove-fdw/issues"
 
 [dependency-groups]
 dev = [
