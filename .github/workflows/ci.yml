@@ -19,6 +19,14 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install Postgres server headers (for multicorn build)
+        run: |
+          set -euo pipefail
+            # Update apt and install development headers needed to compile multicorn's C extension.
+            # postgresql-server-dev-all pulls headers for the default server version (currently 16) plus helpers.
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-server-dev-all libpq-dev
+
       - name: Install tooling
         run: |
           set -euo pipefail
