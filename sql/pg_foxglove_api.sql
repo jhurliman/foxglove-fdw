@@ -27,6 +27,11 @@ CREATE SERVER foxglove_topics_srv
     FOREIGN DATA WRAPPER multicorn
     OPTIONS (wrapper 'foxglove_fdw.topics.FoxgloveTopicsFDW');
 
+-- Messages FDW server (stream & decode messages from recordings)
+CREATE SERVER foxglove_messages_srv
+    FOREIGN DATA WRAPPER multicorn
+    OPTIONS (wrapper 'foxglove_fdw.messages.FoxgloveMessagesFDW');
+
 -- 3. per‑user credentials
 CREATE USER MAPPING FOR CURRENT_USER
     SERVER foxglove_devices_srv
@@ -46,6 +51,10 @@ CREATE USER MAPPING FOR CURRENT_USER
 
 CREATE USER MAPPING FOR CURRENT_USER
     SERVER foxglove_topics_srv
+    OPTIONS (api_key '$FOXGLOVE_API_KEY');
+
+CREATE USER MAPPING FOR CURRENT_USER
+    SERVER foxglove_messages_srv
     OPTIONS (api_key '$FOXGLOVE_API_KEY');
 
 -- 4. foreign tables
@@ -79,6 +88,7 @@ CREATE FOREIGN TABLE IF NOT EXISTS recordings (
     device_id        text,
     device_name      text,
     key              text,
+    topic            text,
     metadata         jsonb
 ) SERVER foxglove_recordings_srv;
 
@@ -123,6 +133,21 @@ CREATE FOREIGN TABLE IF NOT EXISTS topics (
     end_time         timestamptz,
     project_id       text
 ) SERVER foxglove_topics_srv;
+
+CREATE FOREIGN TABLE IF NOT EXISTS messages (
+    device_id      text,
+    device_name    text,
+    recording_id   text,
+    recording_key  text,
+    timestamp      timestamptz,
+    topic          text,
+    schema_name    text,
+    channel_id     int,
+    schema_id      int,
+    sequence_id    int,
+    encoding       text,
+    message        jsonb
+) SERVER foxglove_messages_srv;
 
 CREATE SERVER foxglove_coverage_srv
     FOREIGN DATA WRAPPER multicorn
