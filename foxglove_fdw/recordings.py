@@ -80,6 +80,8 @@ class FoxgloveRecordingsFDW(ForeignDataWrapper):
                 "project_id": "projectId",
                 "importStatus": "importStatus",
                 "import_status": "importStatus",
+                # pseudo filter column – filter recordings containing a topic
+                "topic": "topic",
             }
             if op == "=" and fn in eq_map:
                 params[eq_map[fn]] = q.value
@@ -174,6 +176,7 @@ class FoxgloveRecordingsFDW(ForeignDataWrapper):
                 f"foxglove_recordings FDW upstream error {e.response.status_code if e.response else ''}: {body} (params={params})"
             )
         recs: list[dict] = r.json()
+        topic_filter = params.get("topic")
 
         # ---- local sort fallback -------------------------------------------
         if sortkeys and "sortBy" not in params:
@@ -212,6 +215,8 @@ class FoxgloveRecordingsFDW(ForeignDataWrapper):
                 "device_name": (r_.get("device") or {}).get("name"),
                 "key": r_.get("key"),
                 "metadata": json.dumps(r_.get("metadata", [])),
+                # pseudo filter column (not returned by API payload)
+                "topic": topic_filter,
             }
             if not self._row_matches_quals(row, quals):
                 continue

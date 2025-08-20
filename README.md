@@ -59,9 +59,50 @@ SELECT SUM(EXTRACT(EPOCH FROM (upper(x) - lower(x)))) / 60.0 AS coverage_minutes
 FROM agg, LATERAL unnest(mr) AS x;
 ```
 
+- Parse all messages from a device in the last 10 minutes:
+
+```sql
+SELECT * FROM messages
+WHERE device_name = '<your_device_name>'
+  AND timestamp > now() - interval '10 minutes';
+```
+
+- Retrieve the most recently reported serial number for all robots that have been seen in the last week from `/robot_info.serial_number`:
+
+```sql
+WITH latest AS (
+  SELECT
+    DISTINCT ON (device_name) device_name,
+    id AS recording_id
+  FROM recordings
+  WHERE
+    import_status = 'complete'
+    AND topic = '/robot_info'
+    AND start_time > now() - interval '1 week'
+  ORDER BY device_name, start_time DESC
+)
+
+SELECT
+  l.device_name,
+  m.message ->> 'serial_number' AS serial_number
+FROM
+  latest l
+  CROSS JOIN LATERAL (
+    SELECT message
+    FROM messages
+    WHERE
+      recording_id = l.recording_id
+      AND topic = '/robot_info'
+    ORDER BY timestamp DESC
+    LIMIT 1
+  ) m
+ORDER BY l.device_name;
+```
+
 # Limitations
 
-- The Foxglove API defaults to returning a maximum of 2000 rows per request (with the exception of the coverage endpoint). Automatic pagination is not currently supported, so queries that would return more than 2000 rows will be silently truncated.
+- The messages table only supports `protobuf` and `json` encodings. Other encodings will return NULL for the message column.
+- The Foxglove API defaults to returning a maximum of 2000 rows per request (with the exception of the coverage endpoint). Automatic pagination is not currently supported, so queries that would return more than 2000 rows will be silently truncated. This limitation does not apply to the messages table which retrieves an MCAP payload and parses individual messages.
 - `FOXGLOVE_API_KEY` is currently baked into the Docker image and must be provided at build time. A future improvement would be to move this to a runtime configuration so the same container could be used with different API keys and there is no secret in the image.
 
 # License
